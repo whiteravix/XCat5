@@ -8,9 +8,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Restore games.json from last good commit and rewrite
+      - name: Download good games.json and rewrite art URLs
         run: |
-          git show 401f1407fc115b114bb2022edda586601b9f8f51:games.json > games.json
+          curl -fsSL -o games.json \
+            "https://raw.githubusercontent.com/whiteravix/XCat5/401f1407fc115b114bb2022edda586601b9f8f51/games.json"
           python3 - <<'PY'
           from pathlib import Path
           import re, json
