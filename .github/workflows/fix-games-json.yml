@@ -8,24 +8,45 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Download good games.json and rewrite art URLs
+      - name: Rewrite art URLs to absolute catalog host
         run: |
           curl -fsSL -o games.json \
             "https://raw.githubusercontent.com/whiteravix/XCat5/401f1407fc115b114bb2022edda586601b9f8f51/games.json"
           python3 - <<'PY'
           from pathlib import Path
           import re, json
+          BASE = 'https://xcat5.wikigames.ir'
           t = Path('games.json').read_text()
-          t = re.sub(r'https://whiteravix\.github\.io/XCat5/(covers|heroes|logos)/', r'\1/', t)
+          # github.io mirrored art -> absolute on catalog host
+          t = re.sub(
+              r'https://whiteravix\.github\.io/XCat5/(covers|heroes|logos)/',
+              BASE + r'/\1/',
+              t,
+          )
+          # any remaining relative art paths
           g = json.loads(t)
+          def abs_url(u):
+              if not isinstance(u, str):
+                  return u
+              if u.startswith('covers/') or u.startswith('heroes/') or u.startswith('logos/'):
+                  return f'{BASE}/{u}'
+              return u
+          for game in g:
+              art = game.get('art') or {}
+              for k in ('cover', 'hero', 'logo'):
+                  if k in art:
+                      art[k] = abs_url(art[k])
+              if isinstance(art.get('coverFallbacks'), list):
+                  art['coverFallbacks'] = [abs_url(x) for x in art['coverFallbacks']]
+              game['art'] = art
           Path('games.json').write_text(json.dumps(g, separators=(',', ':'), ensure_ascii=False))
-          print('games', len(g), 'size', Path('games.json').stat().st_size)
           print('sample', g[0]['art']['cover'])
+          print('size', Path('games.json').stat().st_size)
           PY
       - name: Commit and push
         run: |
           git config user.name "xg5-bot"
           git config user.email "bot@users.noreply.github.com"
           git add games.json
-          git commit -m "Use relative art paths for Vercel catalog host"
+          git commit -m "Absolute art URLs on catalog host for image disk cache" || echo nochange
           git push origin HEAD:main
