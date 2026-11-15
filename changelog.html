@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>XG5 — Change log</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --card: #14181f;
+      --border: #232a35;
+      --text: #e8edf5;
+      --muted: #8b96a8;
+      --accent: #5b9cff;
+      --ok: #3ecf8e;
+      --warn: #f0b429;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      padding: 2rem 1.25rem 4rem;
+    }
+    main { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 1.6rem; margin: 0 0 0.35rem; letter-spacing: -0.02em; }
+    .sub { color: var(--muted); margin: 0 0 2rem; font-size: 0.95rem; }
+    .meta {
+      display: flex; flex-wrap: wrap; gap: 0.5rem 1rem;
+      color: var(--muted); font-size: 0.85rem; margin-bottom: 2rem;
+    }
+    .meta a { color: var(--accent); text-decoration: none; }
+    .meta a:hover { text-decoration: underline; }
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.35rem;
+      margin-bottom: 1rem;
+    }
+    section h2 {
+      font-size: 1.05rem;
+      margin: 0 0 0.75rem;
+      display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+    }
+    .tag {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      background: #1c2430;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .tag.live { color: var(--ok); border-color: #2a5a42; background: #12251c; }
+    .tag.app { color: var(--accent); border-color: #2a4060; background: #121c2c; }
+    .tag.catalog { color: var(--warn); border-color: #5a4a20; background: #241e10; }
+    ul { margin: 0; padding-left: 1.15rem; }
+    li { margin: 0.35rem 0; color: #d0d7e2; }
+    li strong { color: var(--text); font-weight: 600; }
+    .note {
+      margin-top: 0.85rem;
+      padding: 0.65rem 0.8rem;
+      background: #0e1218;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      border-left: 3px solid var(--border);
+    }
+    footer {
+      margin-top: 2rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.86em;
+      background: #0e1218;
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>XG5 change log</h1>
+    <p class="sub">Moderate detail on catalog and app changes. Updated as work lands.</p>
+    <div class="meta">
+      <span>Host: <a href="https://xcat5.wikigames.ir">xcat5.wikigames.ir</a></span>
+      <span>App title ID: PPSA07070</span>
+      <span>Last deploy: 2026-11-15</span>
+    </div>
+
+    <section>
+      <h2>
+        0.5.7 — catalog host move
+        <span class="tag live">live</span>
+        <span class="tag catalog">catalog</span>
+        <span class="tag app">app</span>
+      </h2>
+      <ul>
+        <li><strong>Catalog moved off GitHub Pages</strong> to a Vercel static host on the project domain so the console can reach the feed without a VPN in regions where github.io is blocked.</li>
+        <li><strong>REMOTE_BASE</strong> in the app points at the new host (XOR-packed string in <code>native/state/catalog.js</code>). Version string set to <code>0.5.7</code>.</li>
+        <li><strong>Art URLs</strong> in <code>games.json</code> use absolute paths on the catalog host (<code>…/covers/</code>, <code>…/heroes/</code>, <code>…/logos/</code>) so the image disk cache keeps stable keys.</li>
+        <li><strong>HTTP cache headers</strong>: covers/heroes/logos get long-lived immutable cache; <code>games.json</code> ~5 minutes; page/release JSON ~1 hour.</li>
+        <li><strong>Test update</strong>: catalog host shape assertion no longer requires a github.io URL.</li>
+      </ul>
+      <p class="note">A patched 0.5.6 image was also produced earlier by binary-editing REMOTE_BASE only, for testing before a full 0.5.7 rebuild.</p>
+    </section>
+
+    <section>
+      <h2>
+        Catalog pipeline
+        <span class="tag catalog">catalog</span>
+      </h2>
+      <ul>
+        <li>Public catalog repo remains the source of <code>games.json</code>, covers, release and page JSON.</li>
+        <li>Vercel project deploys that repo as a static site (no framework build).</li>
+        <li>Workflow can rewrite art URLs when the host changes (GitHub Actions on the catalog repo).</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>
+        Source layout (build machine)
+        <span class="tag app">app</span>
+      </h2>
+      <ul>
+        <li><code>game-store/</code> — console app (<code>native/</code>, scripts, version).</li>
+        <li><code>ps5-react/</code> — engine.</li>
+        <li><code>overdrive-catalog/</code> — private catalog used at build time for embeds/audits.</li>
+        <li>Build: <code>game-store/scripts/build.sh</code> → exFAT under <code>04_Releases/builds/</code>.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>
+        Known follow-ups
+        <span class="tag">open</span>
+      </h2>
+      <ul>
+        <li>Confirm cover disk cache retention after long rest / app relaunch on console.</li>
+        <li>Keep X5-SC (source tree on GitHub) in sync with local 0.5.7+ when ready.</li>
+        <li>Optional: presence/other endpoints if any still assume the old host.</li>
+      </ul>
+    </section>
+
+    <footer>
+      Internal status page for XG5 catalog and app packaging. Not a storefront.
+    </footer>
+  </main>
+</body>
+</html>
