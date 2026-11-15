@@ -1,0 +1,30 @@
+name: fix-games-json
+on:
+  workflow_dispatch:
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore games.json from last good commit and rewrite
+        run: |
+          git show 401f1407fc115b114bb2022edda586601b9f8f51:games.json > games.json
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, json
+          t = Path('games.json').read_text()
+          t = re.sub(r'https://whiteravix\.github\.io/XCat5/(covers|heroes|logos)/', r'\1/', t)
+          g = json.loads(t)
+          Path('games.json').write_text(json.dumps(g, separators=(',', ':'), ensure_ascii=False))
+          print('games', len(g), 'size', Path('games.json').stat().st_size)
+          print('sample', g[0]['art']['cover'])
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name "xg5-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add games.json
+          git commit -m "Use relative art paths for Vercel catalog host"
+          git push origin HEAD:main
