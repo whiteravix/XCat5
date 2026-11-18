@@ -36,6 +36,15 @@ module.exports = async (req, res) => {
     const assets = Array.isArray(release.assets) ? release.assets : [];
     const asset = (pattern && assets.find(item => pattern.test(item.name))) || null;
     res.setHeader('Cache-Control', 'no-store');
+    // `json=1`: the app must know the address before opening the browser; a plain click still gets
+    // the redirect.
+    if (req.query.json) {
+      return res.status(200).json({
+        url: asset ? asset.browser_download_url : page,
+        version: release.tag_name || '',
+        asset: asset ? asset.name : '',
+      });
+    }
     return res.redirect(302, asset ? asset.browser_download_url : page);
   } catch {
     return res.redirect(302, page);

@@ -5,7 +5,7 @@
     "developer": "Fatih Doğan",
     "category": "Utilities",
     "summary": "Converts PS5 and PS4 games between FPKG, exFAT, dump folders, FFPKG, FFPFS and FFPFSC — on the console or on a PC.",
-    "cover": "https://xcat5.wikigames.ir/api/art?path=apps/alembic.jpg",
+    "cover": "https://xcat5.wikigames.ir/apps/alembic.jpg",
     "repo": "fthdgn-gh/Alembic",
     "page": "https://github.com/fthdgn-gh/Alembic",
     "match": "alembic-app-.*\\.ffpkg$"
@@ -16,7 +16,7 @@
     "developer": "sainsaji",
     "category": "Video & TV",
     "summary": "Media player for jailbroken PS5: USB, SMB/FTP shares, IPTV, Emby/Jellyfin/Plex, up to 4K HDR on the console's hardware decoder.",
-    "cover": "https://xcat5.wikigames.ir/api/art?path=apps/evo-player.jpg",
+    "cover": "https://xcat5.wikigames.ir/apps/evo-player.jpg",
     "repo": "sainsaji/EVO-PLAYER-PS5",
     "page": "https://github.com/sainsaji/EVO-PLAYER-PS5",
     "match": "EVOPlayer-v[0-9.]+-PPSA99039\\.ffpfsc$"
@@ -27,7 +27,7 @@
     "developer": "mihawk-99",
     "category": "Utilities",
     "summary": "A Windows-like desktop on the PS5 that runs 32- and 64-bit Windows games through a Wine/Proton stack with native Vulkan.",
-    "cover": "https://xcat5.wikigames.ir/api/art?path=apps/mihawkos.jpg",
+    "cover": "https://xcat5.wikigames.ir/apps/mihawkos.jpg",
     "repo": "mihawk-99/PS5_MihawkOS",
     "page": "https://github.com/mihawk-99/PS5_MihawkOS",
     "match": ""
@@ -38,7 +38,7 @@
     "developer": "leolobato",
     "category": "Utilities",
     "summary": "Launch your Steam library on PS5: sign in, download your Windows games and play them through prospero-win.",
-    "cover": "https://xcat5.wikigames.ir/api/art?path=apps/playden.jpg",
+    "cover": "https://xcat5.wikigames.ir/apps/playden.jpg",
     "repo": "leolobato/playden-ps5",
     "page": "https://github.com/leolobato/playden-ps5",
     "match": "playden-ps5-.*\\.zip$"
@@ -49,9 +49,9 @@
     "developer": "AZiZ",
     "category": "Video & TV",
     "summary": "VLC media player for PS5: videos, music, photos, subtitles, DVD images and more.",
-    "icon": "https://prosperostore.net/assets/icon-PPSA85300.bf07be7fb960.webp",
     "repo": "ZiZc3/VLC",
     "page": "https://github.com/ZiZc3/VLC",
-    "match": "PPSA85300\\.zip$"
+    "match": "PPSA85300\\.zip$",
+    "cover": "https://xcat5.wikigames.ir/apps/vlc.jpg"
   }
 ]
