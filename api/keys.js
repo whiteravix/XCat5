@@ -1,7 +1,7 @@
 // Every text key the app ships, with its current wording, so the panel can show the real list
 // instead of asking for a key to be typed from memory. Read from the app repository through the
 // GitHub API with the same server-side token; the browser never sees it.
-const {authed} = require('../lib/auth');
+const {authed} = require('./_lib/auth');
 
 const APP_REPO = process.env.APP_REPO || 'whiteravix/X5-SC';
 const LOCALES = process.env.APP_LOCALES || 'game-store/native/i18n/locales';

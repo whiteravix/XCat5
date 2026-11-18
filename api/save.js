@@ -1,5 +1,5 @@
-const {authed} = require('../lib/auth');
-const {commitFiles} = require('../lib/github');
+const {authed} = require('./_lib/auth');
+const {commitFiles} = require('./_lib/github');
 
 // Only catalog files the panel edits; anything else is refused, so a stolen session cannot rewrite
 // the site or the admin code itself.

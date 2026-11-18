@@ -1,4 +1,4 @@
-const {passwordOk, loginCookie, logoutCookie} = require('../lib/auth');
+const {passwordOk, loginCookie, logoutCookie} = require('./_lib/auth');
 
 module.exports = async (req, res) => {
   if (req.method === 'DELETE') {

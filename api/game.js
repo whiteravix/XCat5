@@ -1,5 +1,5 @@
-const {authed} = require('../lib/auth');
-const {readJson} = require('../lib/github');
+const {authed} = require('./_lib/auth');
+const {readJson} = require('./_lib/github');
 
 const ID = /^[A-Za-z0-9_-]{1,40}$/;
 

@@ -1,5 +1,5 @@
-const {authed} = require('../lib/auth');
-const {readJson} = require('../lib/github');
+const {authed} = require('./_lib/auth');
+const {readJson} = require('./_lib/github');
 
 module.exports = async (req, res) => {
   if (!authed(req)) return res.status(401).json({error: 'auth'});

@@ -8,7 +8,7 @@ let allowed = null;
 let allowedAt = 0;
 async function listed(repo) {
   if (!allowed || Date.now() - allowedAt > 300000) {
-    const {readJson} = require('../lib/github');
+    const {readJson} = require('./_lib/github');
     const feed = await readJson('apps.json').catch(() => null);
     allowed = new Set((feed || []).map(app => app.repo).filter(Boolean));
     allowedAt = Date.now();
