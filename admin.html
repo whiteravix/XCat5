@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>XG5 catalog admin</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, sans-serif; background: #11151c; color: #e6e9ef; }
+  header { display: flex; gap: 16px; align-items: center; padding: 12px 20px; background: #171c25; border-bottom: 1px solid #252c38; }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  nav { display: flex; gap: 4px; }
+  nav button { background: none; border: 1px solid transparent; color: #9aa4b2; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+  nav button.on { background: #232b38; color: #fff; border-color: #333d4d; }
+  main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+  .row { display: flex; gap: 16px; }
+  .col { flex: 1; min-width: 0; }
+  input, select, textarea { width: 100%; background: #0d1117; color: #e6e9ef; border: 1px solid #2b3441; border-radius: 6px; padding: 7px 9px; font: inherit; }
+  textarea { resize: vertical; }
+  label { display: block; font-size: 12px; color: #9aa4b2; margin: 10px 0 3px; }
+  button.act { background: #2f6fed; border: 0; color: #fff; padding: 8px 14px; border-radius: 6px; cursor: pointer; font: inherit; }
+  button.ghost { background: #232b38; border: 1px solid #333d4d; color: #dbe1ea; padding: 6px 10px; border-radius: 6px; cursor: pointer; font: inherit; }
+  button.danger { background: #7a2430; border: 1px solid #a63345; color: #ffd9de; padding: 6px 10px; border-radius: 6px; cursor: pointer; font: inherit; }
+  #list { max-height: 70vh; overflow: auto; border: 1px solid #252c38; border-radius: 8px; }
+  #list div { padding: 7px 10px; cursor: pointer; border-bottom: 1px solid #1c232d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #list div:hover { background: #1a212b; }
+  #list div.on { background: #24314a; }
+  .muted { color: #8b95a4; font-size: 12px; }
+  .bar { display: flex; gap: 10px; align-items: center; margin: 14px 0; }
+  .card { border: 1px solid #252c38; border-radius: 8px; padding: 12px; margin-bottom: 12px; background: #151a22; }
+  #toast { position: fixed; right: 18px; bottom: 18px; background: #1f2a3a; border: 1px solid #33415a; padding: 10px 14px; border-radius: 8px; display: none; max-width: 380px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 3px 4px; }
+  td:last-child { width: 32px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>XG5 catalog</h1>
+  <nav id="tabs" hidden>
+    <button data-tab="games" class="on">Games</button>
+    <button data-tab="notices">Notices</button>
+    <button data-tab="text">Text</button>
+  </nav>
+  <span class="muted" id="who"></span>
+  <span style="flex:1"></span>
+  <button class="ghost" id="logout" hidden>Log out</button>
+</header>
+
+<main>
+  <section id="login">
+    <div class="card" style="max-width:380px">
+      <label>Password</label>
+      <input id="password" type="password" autocomplete="current-password">
+      <div class="bar"><button class="act" id="signin">Sign in</button><span class="muted" id="loginerr"></span></div>
+    </div>
+  </section>
+
+  <section id="games" hidden>
+    <div class="row">
+      <div class="col" style="max-width:340px">
+        <div class="bar"><input id="search" placeholder="Search games…"><button class="ghost" id="newgame">New</button></div>
+        <div id="list"></div>
+      </div>
+      <div class="col">
+        <div id="editor" hidden>
+          <div class="row">
+            <div class="col"><label>Title ID</label><input id="f_id"></div>
+            <div class="col"><label>Title</label><input id="f_title"></div>
+          </div>
+          <div class="row">
+            <div class="col"><label>Platform</label><select id="f_platform"><option>ps5</option><option>ps4</option></select></div>
+            <div class="col"><label>Sources (comma separated)</label><input id="f_providers" placeholder="TOP2D, P30Day"></div>
+            <div class="col"><label>Genres (comma separated)</label><input id="f_genres"></div>
+          </div>
+          <label>Cover URL</label><input id="f_cover">
+          <label>Upload cover (jpg/png; saved as covers/&lt;id&gt;.jpg)</label><input id="f_coverfile" type="file" accept="image/jpeg,image/png">
+          <label>Hero URL</label><input id="f_hero">
+          <label>Summary (game page)</label><textarea id="f_summary" rows="3"></textarea>
+          <label>About (one paragraph per line)</label><textarea id="f_about" rows="4"></textarea>
+          <label>Download links</label>
+          <table id="releases"><tbody></tbody></table>
+          <div class="bar"><button class="ghost" id="addlink">Add link</button></div>
+          <div class="bar">
+            <button class="act" id="savegame">Save game</button>
+            <button class="danger" id="deletegame">Remove from catalog</button>
+            <span class="muted" id="gamestate"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="notices" hidden>
+    <div id="noticelist"></div>
+    <div class="bar"><button class="ghost" id="addnotice">Add notice</button><button class="act" id="savenotices">Save notices</button><span class="muted" id="noticestate"></span></div>
+  </section>
+
+  <section id="text" hidden>
+    <p class="muted">Overrides the app's bundled text. Leave a language empty to keep the shipped wording.</p>
+    <table id="strings"><thead><tr><th style="width:32%">Key</th><th>English</th><th>Persian</th><th></th></tr></thead><tbody></tbody></table>
+    <div class="bar"><button class="ghost" id="addstring">Add key</button><button class="act" id="savetext">Save text</button><span class="muted" id="textstate"></span></div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const state = { games: [], config: { strings: {} }, notices: [], current: null, page: null, releases: [], cover: null };
+const $ = id => document.getElementById(id);
+let toastTimer;
+
+function toast(text, bad) {
+  const box = $('toast');
+  box.textContent = text;
+  box.style.borderColor = bad ? '#a63345' : '#33415a';
+  box.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { box.style.display = 'none'; }, bad ? 8000 : 4000);
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(path, {
+    credentials: 'same-origin',
+    headers: options.body ? {'Content-Type': 'application/json'} : {},
+    ...options,
+  });
+  if (res.status === 401) { showLogin(); throw new Error('not signed in'); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+function showLogin() {
+  $('login').hidden = false;
+  $('tabs').hidden = true;
+  $('logout').hidden = true;
+  for (const id of ['games', 'notices', 'text']) $(id).hidden = true;
+}
+
+function showApp() {
+  $('login').hidden = true;
+  $('tabs').hidden = false;
+  $('logout').hidden = false;
+  switchTab('games');
+}
+
+function switchTab(name) {
+  for (const button of document.querySelectorAll('#tabs button')) button.classList.toggle('on', button.dataset.tab === name);
+  for (const id of ['games', 'notices', 'text']) $(id).hidden = id !== name;
+}
+
+async function load() {
+  const data = await api('/api/state');
+  state.games = data.games || [];
+  state.config = data.config && data.config.strings ? data.config : {strings: {}};
+  state.notices = data.notices || [];
+  renderList();
+  renderNotices();
+  renderStrings();
+  showApp();
+}
+
+function renderList() {
+  const needle = $('search').value.trim().toLowerCase();
+  const list = $('list');
+  list.innerHTML = '';
+  for (const game of state.games) {
+    const text = `${game.id} · ${game.title}`;
+    if (needle && !text.toLowerCase().includes(needle)) continue;
+    const row = document.createElement('div');
+    row.textContent = text;
+    row.title = text;
+    row.classList.toggle('on', state.current === game);
+    row.onclick = () => openGame(game);
+    list.appendChild(row);
+  }
+}
+
+async function openGame(game) {
+  state.current = game;
+  state.page = {about: [], shots: [], summary: ''};
+  state.releases = [];
+  state.cover = null;
+  renderList();
+  $('editor').hidden = false;
+  $('f_id').value = game.id;
+  $('f_title').value = game.title || '';
+  $('f_platform').value = game.platform || 'ps5';
+  $('f_providers').value = (game.providers || []).join(', ');
+  $('f_genres').value = (game.genres || []).join(', ');
+  $('f_cover').value = game.art?.cover || '';
+  $('f_hero').value = game.art?.hero || '';
+  $('f_summary').value = '';
+  $('f_about').value = '';
+  renderReleases();
+  try {
+    const data = await api(`/api/game?id=${encodeURIComponent(game.id)}`);
+    state.page = data.page;
+    state.releases = data.releases;
+    $('f_summary').value = state.page.summary || '';
+    $('f_about').value = (state.page.about || []).join('\n');
+    renderReleases();
+  } catch (error) {
+    toast(`Could not read game files: ${error.message}`, true);
+  }
+}
+
+function renderReleases() {
+  const body = $('releases').tBodies[0];
+  body.innerHTML = '';
+  state.releases.forEach((release, index) => {
+    const tr = document.createElement('tr');
+    const label = document.createElement('input');
+    label.value = release.label || '';
+    label.placeholder = 'Label (HACKED FW 9.00)';
+    label.oninput = () => { release.label = label.value; };
+    const url = document.createElement('input');
+    url.value = release.url || '';
+    url.placeholder = 'https://…';
+    url.oninput = () => { release.url = url.value; };
+    const del = document.createElement('button');
+    del.className = 'danger';
+    del.textContent = '×';
+    del.title = 'Remove link';
+    del.onclick = () => { state.releases.splice(index, 1); renderReleases(); };
+    tr.append(cell(label), cell(url), cell(del));
+    body.appendChild(tr);
+  });
+}
+
+function cell(...nodes) {
+  const td = document.createElement('td');
+  td.append(...nodes);
+  return td;
+}
+
+function collectGame() {
+  const base = state.current ? {...state.current} : {id: '', title: '', platform: 'ps5', work: null, providers: [], genres: [], features: [], art: {}};
+  base.id = $('f_id').value.trim();
+  base.title = $('f_title').value.trim();
+  base.platform = $('f_platform').value;
+  base.providers = $('f_providers').value.split(',').map(s => s.trim()).filter(Boolean);
+  base.genres = $('f_genres').value.split(',').map(s => s.trim()).filter(Boolean);
+  base.art = {...(base.art || {}), cover: $('f_cover').value.trim(), hero: $('f_hero').value.trim()};
+  return base;
+}
+
+function pageOfForm() {
+  return {
+    ...state.page,
+    summary: $('f_summary').value,
+    about: $('f_about').value.split('\n').map(s => s.trim()).filter(Boolean),
+  };
+}
+
+async function saveGame() {
+  const game = collectGame();
+  if (!/^[A-Za-z0-9_-]{3,40}$/.test(game.id)) return toast('Title ID must be letters, digits, _ or -', true);
+  if (!game.title) return toast('Title is required', true);
+  const existing = state.games.findIndex(item => item.id === game.id);
+  if (existing >= 0) state.games[existing] = game;
+  else state.games.push(game);
+
+  const files = [{path: 'games.json', content: JSON.stringify(state.games)}];
+  files.push({path: `data/pages/${game.id}.json`, content: JSON.stringify(pageOfForm())});
+  const releases = state.releases
+    .filter(release => release.url)
+    .map((release, index) => ({
+      ...release,
+      id: release.id || `${game.id.toLowerCase()}-${index}`,
+      format: release.format || 'binary',
+      filename: release.filename || `${game.id}-${index}.binary`,
+      provider: release.provider || (game.providers[0] || 'TOP2D'),
+      source: release.source || (game.providers[0] || 'TOP2D'),
+      browserUrl: release.browserUrl || '',
+      requiresBrowser: Boolean(release.requiresBrowser),
+      sizeBytes: release.sizeBytes ?? null,
+      setBytes: release.setBytes ?? null,
+      version: release.version || '',
+      volume: release.volume || '',
+      record: release.record || '',
+    }));
+  files.push({path: `data/releases/${game.id}.json`, content: JSON.stringify(releases)});
+  if (state.cover) {
+    files.push({path: `covers/${game.id}.${state.cover.ext}`, content: state.cover.base64, encoding: 'base64'});
+    game.art.cover = `${location.origin}/covers/${game.id}.${state.cover.ext}`;
+    $('f_cover').value = game.art.cover;
+  }
+  try {
+    $('gamestate').textContent = 'Saving…';
+    const result = await api('/api/save', {method: 'POST', body: JSON.stringify({files, message: `Edit ${game.id} from admin`})});
+    $('gamestate').textContent = `Saved ${result.sha.slice(0, 7)}`;
+    toast('Saved. Vercel is rebuilding; the app sees it in about 30 seconds.');
+    renderList();
+  } catch (error) {
+    $('gamestate').textContent = '';
+    toast(`Save failed: ${error.message}`, true);
+  }
+}
+
+function removeGame() {
+  if (!state.current) return;
+  if (!confirm(`Remove ${state.current.id} from games.json? The game's files stay on the host.`)) return;
+  state.games = state.games.filter(game => game.id !== state.current.id);
+  saveGamesOnly();
+  state.current = null;
+  $('editor').hidden = true;
+  renderList();
+}
+
+async function saveGamesOnly() {
+  try {
+    await api('/api/save', {method: 'POST', body: JSON.stringify({files: [{path: 'games.json', content: JSON.stringify(state.games)}], message: 'Remove a game from admin'})});
+    toast('Removed.');
+  } catch (error) {
+    toast(`Save failed: ${error.message}`, true);
+  }
+}
+
+function renderNotices() {
+  const box = $('noticelist');
+  box.innerHTML = '';
+  state.notices.forEach((notice, index) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="row">
+        <div class="col"><label>Id</label><input data-k="id"></div>
+        <div class="col"><label>Expires (YYYY-MM-DD, empty = never)</label><input data-k="expires"></div>
+        <div class="col"><label>Min app version</label><input data-k="minVersion" placeholder="0.5.7"></div>
+        <div class="col"><label>Enabled</label><input data-k="enabled" type="checkbox"></div>
+      </div>
+      <label>English lines (one per line)</label><textarea data-k="en" rows="2"></textarea>
+      <label>Persian lines (one per line)</label><textarea data-k="fa" rows="2"></textarea>
+      <label>Link (optional)</label><input data-k="link">
+      <div class="bar"><button class="danger">Remove</button></div>`;
+    for (const input of card.querySelectorAll('[data-k]')) {
+      const key = input.dataset.k;
+      if (key === 'en' || key === 'fa') input.value = (notice[key] || []).join('\n');
+      else if (key === 'enabled') input.checked = notice.enabled !== false;
+      else input.value = notice[key] || '';
+      const write = () => {
+        if (key === 'en' || key === 'fa') notice[key] = input.value.split('\n').map(s => s.trim()).filter(Boolean);
+        else if (key === 'enabled') notice.enabled = input.checked;
+        else notice[key] = input.value.trim();
+      };
+      input.oninput = write;
+      input.onchange = write;
+    }
+    card.querySelector('button.danger').onclick = () => { state.notices.splice(index, 1); renderNotices(); };
+    box.appendChild(card);
+  });
+}
+
+async function saveNotices() {
+  try {
+    await api('/api/save', {method: 'POST', body: JSON.stringify({files: [{path: 'notices.json', content: JSON.stringify(state.notices, null, 2)}], message: 'Update notices from admin'})});
+    $('noticestate').textContent = 'Saved';
+    toast('Notices saved. The app shows the first unexpired one at launch.');
+  } catch (error) {
+    toast(`Save failed: ${error.message}`, true);
+  }
+}
+
+function renderStrings() {
+  const body = $('strings').tBodies[0];
+  body.innerHTML = '';
+  const en = state.config.strings.en || {};
+  const fa = state.config.strings.fa || {};
+  const keys = [...new Set([...Object.keys(en), ...Object.keys(fa)])].sort();
+  if (!keys.length) keys.push('');
+  for (const key of keys) addStringRow(key, en[key] || '', fa[key] || '');
+}
+
+function addStringRow(key = '', english = '', persian = '') {
+  const tr = document.createElement('tr');
+  const k = document.createElement('input');
+  const e = document.createElement('input');
+  const f = document.createElement('input');
+  k.value = key; e.value = english; f.value = persian;
+  k.placeholder = 'notice.continue';
+  const del = document.createElement('button');
+  del.className = 'danger'; del.textContent = '×';
+  del.onclick = () => tr.remove();
+  tr.append(cell(k), cell(e), cell(f), cell(del));
+  $('strings').tBodies[0].appendChild(tr);
+}
+
+async function saveText() {
+  const en = {}, fa = {};
+  for (const tr of $('strings').tBodies[0].rows) {
+    const [k, e, f] = tr.querySelectorAll('input');
+    const key = k.value.trim();
+    if (!key) continue;
+    if (e.value.trim()) en[key] = e.value;
+    if (f.value.trim()) fa[key] = f.value;
+  }
+  try {
+    await api('/api/save', {method: 'POST', body: JSON.stringify({files: [{path: 'config.json', content: JSON.stringify({strings: {en, fa}}, null, 2)}], message: 'Update app text from admin'})});
+    $('textstate').textContent = 'Saved';
+    toast('Text saved. The app applies it on next launch.');
+  } catch (error) {
+    toast(`Save failed: ${error.message}`, true);
+  }
+}
+
+function readCover(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const bytes = new Uint8Array(reader.result);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      resolve({base64: btoa(binary), ext: file.type === 'image/png' ? 'png' : 'jpg'});
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+$('signin').onclick = async () => {
+  try {
+    await api('/api/login', {method: 'POST', body: JSON.stringify({password: $('password').value})});
+    $('password').value = '';
+    $('loginerr').textContent = '';
+    await load();
+  } catch (error) {
+    $('loginerr').textContent = 'Wrong password';
+  }
+};
+$('password').addEventListener('keydown', event => { if (event.key === 'Enter') $('signin').click(); });
+$('logout').onclick = async () => { await fetch('/api/login', {method: 'DELETE', credentials: 'same-origin'}); showLogin(); };
+$('search').oninput = renderList;
+$('newgame').onclick = () => {
+  state.current = null;
+  state.page = {about: [], shots: [], summary: ''};
+  state.releases = [];
+  state.cover = null;
+  $('editor').hidden = false;
+  for (const id of ['f_id', 'f_title', 'f_genres', 'f_cover', 'f_hero', 'f_summary', 'f_about']) $(id).value = '';
+  $('f_platform').value = 'ps5';
+  $('f_providers').value = 'TOP2D';
+  renderReleases();
+  $('f_id').focus();
+};
+$('addlink').onclick = () => { state.releases.push({label: '', url: ''}); renderReleases(); };
+$('savegame').onclick = saveGame;
+$('deletegame').onclick = removeGame;
+$('addnotice').onclick = () => {
+  state.notices.push({id: `notice-${Date.now()}`, en: [], fa: [], expires: '', enabled: true});
+  renderNotices();
+};
+$('savenotices').onclick = saveNotices;
+$('addstring').onclick = () => addStringRow();
+$('savetext').onclick = saveText;
+$('f_coverfile').onchange = async event => {
+  const file = event.target.files[0];
+  if (file) state.cover = await readCover(file);
+};
+for (const button of document.querySelectorAll('#tabs button')) button.onclick = () => switchTab(button.dataset.tab);
+
+api('/api/state').then(data => {
+  state.games = data.games || [];
+  state.config = data.config && data.config.strings ? data.config : {strings: {}};
+  state.notices = data.notices || [];
+  renderList(); renderNotices(); renderStrings(); showApp();
+}).catch(() => showLogin());
+</script>
+</body>
+</html>
