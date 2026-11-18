@@ -89,6 +89,30 @@
           <input id="f_dlclabel" placeholder="Premium Edition DLC content included">
           <label>Included DLC items (one per line)</label>
           <textarea id="f_dlcitems" rows="3"></textarea>
+          <label>Download box texts for this game (blank = the app's own text)</label>
+          <table id="gtexts"><tbody></tbody></table>
+          <datalist id="dlckeys">
+            <option value="download.button.idle">
+            <option value="download.button.failed">
+            <option value="download.button.paused">
+            <option value="download.button.extracting">
+            <option value="download.button.extracted">
+            <option value="download.button.installing">
+            <option value="download.button.installer-required">
+            <option value="download.button.no-space">
+            <option value="downloadSheet.links">
+            <option value="downloadSheet.version">
+            <option value="downloadSheet.chooseVersion">
+            <option value="downloadSheet.afterExtraction">
+            <option value="downloadSheet.noteSpace">
+            <option value="downloadSheet.noteBase">
+            <option value="downloadSheet.noteAutoDelete">
+            <option value="downloadSheet.dlcIncluded">
+            <option value="downloadSheet.noLinks">
+            <option value="downloadSheet.loading">
+            <option value="downloadSheet.scrollHint">
+          </datalist>
+          <div class="bar"><button class="ghost" id="addgtext">Add text</button></div>
           <div class="bar">
             <button class="act" id="savegame">Save game</button>
             <button class="danger" id="deletegame">Remove from catalog</button>
@@ -212,6 +236,7 @@ async function openGame(game) {
   $('f_about').value = '';
   $('f_dlclabel').value = '';
   $('f_dlcitems').value = '';
+  renderGameTexts();
   renderReleases();
   try {
     const data = await api(`/api/game?id=${encodeURIComponent(game.id)}`);
@@ -219,6 +244,7 @@ async function openGame(game) {
     state.releases = data.releases;
     const withDlc = state.releases.find(release => release.dlc && Array.isArray(release.dlc.items));
     $('f_dlclabel').value = withDlc?.dlc.label || '';
+    renderGameTexts();
     $('f_dlcitems').value = (withDlc?.dlc.items || []).join('\n');
     $('f_summary').value = state.page.summary || '';
     $('f_about').value = (state.page.about || []).join('\n');
@@ -254,6 +280,27 @@ function renderReleases() {
     tr.append(cell(label), cell(version), cell(url), cell(del));
     body.appendChild(tr);
   });
+}
+
+function renderGameTexts() {
+  const body = $('gtexts').tBodies[0];
+  body.innerHTML = '';
+  const texts = state.current?.texts || {};
+  for (const [key, value] of Object.entries(texts)) addGameTextRow(key, value);
+}
+
+function addGameTextRow(key = '', value = '') {
+  const tr = document.createElement('tr');
+  const k = document.createElement('input');
+  const v = document.createElement('input');
+  k.value = key; k.placeholder = 'download.button.idle';
+  k.setAttribute('list', 'dlckeys');
+  v.value = value; v.placeholder = 'Text shown in the box';
+  const del = document.createElement('button');
+  del.className = 'danger'; del.textContent = '×'; del.title = 'Remove';
+  del.onclick = () => tr.remove();
+  tr.append(cell(k), cell(v), cell(del));
+  $('gtexts').tBodies[0].appendChild(tr);
 }
 
 function cell(...nodes) {
@@ -313,6 +360,13 @@ async function saveGame() {
       volume: release.volume || '',
       record: release.record || '',
     }));
+  const texts = {};
+  for (const tr of $('gtexts').tBodies[0].rows) {
+    const [key, value] = tr.querySelectorAll('input');
+    if (key.value.trim() && value.value.trim()) texts[key.value.trim()] = value.value;
+  }
+  if (Object.keys(texts).length) game.texts = texts;
+  else delete game.texts;
   const dlcLabel = $('f_dlclabel').value.trim();
   const dlcItems = $('f_dlcitems').value.split('\n').map(line => line.trim()).filter(Boolean);
   for (const release of releases) {
@@ -517,6 +571,7 @@ $('addstring').onclick = () => addStringRow('', '', '', '', '', true);
 $('savetext').onclick = saveText;
 $('textsearch').oninput = renderStrings;
 $('textedited').onchange = renderStrings;
+$('addgtext').onclick = () => addGameTextRow();
 $('f_coverfile').onchange = async event => {
   const file = event.target.files[0];
   if (file) state.cover = await readCover(file);
