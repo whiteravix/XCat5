@@ -3,9 +3,23 @@
 // release at all, it lands on the project's latest-release page instead.
 const REPO = /^[A-Za-z0-9_.-]{1,40}\/[A-Za-z0-9_.-]{1,60}$/;
 
+// Only the projects the apps feed lists: the endpoint resolves catalog links, not any repository.
+let allowed = null;
+let allowedAt = 0;
+async function listed(repo) {
+  if (!allowed || Date.now() - allowedAt > 300000) {
+    const {readJson} = require('../lib/github');
+    const feed = await readJson('apps.json').catch(() => null);
+    allowed = new Set((feed || []).map(app => app.repo).filter(Boolean));
+    allowedAt = Date.now();
+  }
+  return allowed.has(repo);
+}
+
 module.exports = async (req, res) => {
   const repo = (req.query && req.query.repo) || '';
   if (!REPO.test(repo)) return res.status(400).json({error: 'repo'});
+  if (!(await listed(repo))) return res.status(404).json({error: 'unknown app'});
   const page = `https://github.com/${repo}/releases/latest`;
   let pattern = null;
   try {
