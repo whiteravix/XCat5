@@ -108,7 +108,7 @@
 <div id="toast"></div>
 
 <script>
-const state = { games: [], config: { strings: {} }, notices: [], current: null, page: null, releases: [], cover: null };
+const state = { games: [], config: { strings: {} }, notices: [], current: null, page: null, releases: [], cover: null, rawBase: 'https://raw.githubusercontent.com/whiteravix/XCat5/main' };
 const $ = id => document.getElementById(id);
 let toastTimer;
 
@@ -286,7 +286,9 @@ async function saveGame() {
   files.push({path: `data/releases/${game.id}.json`, content: JSON.stringify(releases)});
   if (state.cover) {
     files.push({path: `covers/${game.id}.${state.cover.ext}`, content: state.cover.base64, encoding: 'base64'});
-    game.art.cover = `${location.origin}/covers/${game.id}.${state.cover.ext}`;
+    // Served through this host's image function, so a new cover shows at once and the console only
+    // talks to the catalog host.
+    game.art.cover = `${location.origin}/api/art?path=covers/${game.id}.${state.cover.ext}`;
     $('f_cover').value = game.art.cover;
   }
   try {
