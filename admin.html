@@ -85,6 +85,10 @@
           <label>Download links</label>
           <table id="releases"><tbody></tbody></table>
           <div class="bar"><button class="ghost" id="addlink">Add link</button></div>
+          <label>Download box · included-DLC label (leave empty to hide the box)</label>
+          <input id="f_dlclabel" placeholder="Premium Edition DLC content included">
+          <label>Included DLC items (one per line)</label>
+          <textarea id="f_dlcitems" rows="3"></textarea>
           <div class="bar">
             <button class="act" id="savegame">Save game</button>
             <button class="danger" id="deletegame">Remove from catalog</button>
@@ -206,11 +210,16 @@ async function openGame(game) {
   $('f_hero').value = game.art?.hero || '';
   $('f_summary').value = '';
   $('f_about').value = '';
+  $('f_dlclabel').value = '';
+  $('f_dlcitems').value = '';
   renderReleases();
   try {
     const data = await api(`/api/game?id=${encodeURIComponent(game.id)}`);
     state.page = data.page;
     state.releases = data.releases;
+    const withDlc = state.releases.find(release => release.dlc && Array.isArray(release.dlc.items));
+    $('f_dlclabel').value = withDlc?.dlc.label || '';
+    $('f_dlcitems').value = (withDlc?.dlc.items || []).join('\n');
     $('f_summary').value = state.page.summary || '';
     $('f_about').value = (state.page.about || []).join('\n');
     renderReleases();
@@ -228,6 +237,11 @@ function renderReleases() {
     label.value = release.label || '';
     label.placeholder = 'Label (HACKED FW 9.00)';
     label.oninput = () => { release.label = label.value; };
+    const version = document.createElement('input');
+    version.value = release.version || '';
+    version.placeholder = '1.00';
+    version.style.maxWidth = '80px';
+    version.oninput = () => { release.version = version.value.trim(); };
     const url = document.createElement('input');
     url.value = release.url || '';
     url.placeholder = 'https://…';
@@ -237,7 +251,7 @@ function renderReleases() {
     del.textContent = '×';
     del.title = 'Remove link';
     del.onclick = () => { state.releases.splice(index, 1); renderReleases(); };
-    tr.append(cell(label), cell(url), cell(del));
+    tr.append(cell(label), cell(version), cell(url), cell(del));
     body.appendChild(tr);
   });
 }
@@ -271,6 +285,11 @@ async function saveGame() {
   const game = collectGame();
   if (!/^[A-Za-z0-9_-]{3,40}$/.test(game.id)) return toast('Title ID must be letters, digits, _ or -', true);
   if (!game.title) return toast('Title is required', true);
+  const originalId = state.current ? state.current.id : null;
+  if (originalId && originalId !== game.id) {
+    if (!confirm(`Change the Title ID from ${originalId} to ${game.id}? The app shows the new one; the old files stay on the host.`)) return;
+    state.games = state.games.filter(item => item.id !== originalId);
+  }
   const existing = state.games.findIndex(item => item.id === game.id);
   if (existing >= 0) state.games[existing] = game;
   else state.games.push(game);
@@ -294,6 +313,12 @@ async function saveGame() {
       volume: release.volume || '',
       record: release.record || '',
     }));
+  const dlcLabel = $('f_dlclabel').value.trim();
+  const dlcItems = $('f_dlcitems').value.split('\n').map(line => line.trim()).filter(Boolean);
+  for (const release of releases) {
+    if (dlcItems.length) release.dlc = {label: dlcLabel, items: dlcItems};
+    else delete release.dlc;
+  }
   files.push({path: `data/releases/${game.id}.json`, content: JSON.stringify(releases)});
   if (state.cover) {
     files.push({path: `covers/${game.id}.${state.cover.ext}`, content: state.cover.base64, encoding: 'base64'});
@@ -305,8 +330,9 @@ async function saveGame() {
   try {
     $('gamestate').textContent = 'Saving…';
     const result = await api('/api/save', {method: 'POST', body: JSON.stringify({files, message: `Edit ${game.id} from admin`})});
+    state.current = game;
     $('gamestate').textContent = `Saved ${result.sha.slice(0, 7)}`;
-    toast('Saved. Vercel is rebuilding; the app sees it in about 30 seconds.');
+    toast('Saved. The app sees it in about 30 seconds.');
     renderList();
   } catch (error) {
     $('gamestate').textContent = '';
@@ -473,7 +499,7 @@ $('newgame').onclick = () => {
   state.releases = [];
   state.cover = null;
   $('editor').hidden = false;
-  for (const id of ['f_id', 'f_title', 'f_genres', 'f_cover', 'f_hero', 'f_summary', 'f_about']) $(id).value = '';
+  for (const id of ['f_id', 'f_title', 'f_genres', 'f_cover', 'f_hero', 'f_summary', 'f_about', 'f_dlclabel', 'f_dlcitems']) $(id).value = '';
   $('f_platform').value = 'ps5';
   $('f_providers').value = 'TOP2D';
   renderReleases();
