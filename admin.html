@@ -31,6 +31,7 @@
   .bar { display: flex; gap: 10px; align-items: center; margin: 14px 0; }
   .card { border: 1px solid #252c38; border-radius: 8px; padding: 12px; margin-bottom: 12px; background: #151a22; }
   #toast { position: fixed; right: 18px; bottom: 18px; background: #1f2a3a; border: 1px solid #33415a; padding: 10px 14px; border-radius: 8px; display: none; max-width: 380px; }
+  #strings tr.edited td:first-child input { color: #7ee2a8; }
   table { width: 100%; border-collapse: collapse; }
   td { padding: 3px 4px; }
   td:last-child { width: 32px; }
@@ -99,7 +100,12 @@
   </section>
 
   <section id="text" hidden>
-    <p class="muted">Overrides the app's bundled text. Leave a language empty to keep the shipped wording.</p>
+    <p class="muted">Every text the app ships is listed. The grey text is the current wording; type in a box to replace it. Empty boxes keep the shipped text.</p>
+    <div class="bar">
+      <input id="textsearch" placeholder="Search text…" style="max-width:320px">
+      <label style="display:flex;gap:6px;align-items:center;margin:0"><input id="textedited" type="checkbox" style="width:auto"> Only edited</label>
+      <span class="muted" id="textcount"></span>
+    </div>
     <table id="strings"><thead><tr><th style="width:32%">Key</th><th>English</th><th>Persian</th><th></th></tr></thead><tbody></tbody></table>
     <div class="bar"><button class="ghost" id="addstring">Add key</button><button class="act" id="savetext">Save text</button><span class="muted" id="textstate"></span></div>
   </section>
@@ -108,7 +114,7 @@
 <div id="toast"></div>
 
 <script>
-const state = { games: [], config: { strings: {} }, notices: [], current: null, page: null, releases: [], cover: null, rawBase: 'https://raw.githubusercontent.com/whiteravix/XCat5/main' };
+const state = { games: [], config: { strings: {} }, notices: [], current: null, page: null, releases: [], cover: null, shipped: { en: {}, fa: {} } };
 const $ = id => document.getElementById(id);
 let toastTimer;
 
@@ -153,10 +159,14 @@ function switchTab(name) {
 }
 
 async function load() {
-  const data = await api('/api/state');
+  const [data, keys] = await Promise.all([
+    api('/api/state'),
+    api('/api/keys').catch(() => ({en: {}, fa: {}})),
+  ]);
   state.games = data.games || [];
   state.config = data.config && data.config.strings ? data.config : {strings: {}};
   state.notices = data.notices || [];
+  state.shipped = keys && keys.en ? keys : {en: {}, fa: {}};
   renderList();
   renderNotices();
   renderStrings();
@@ -370,23 +380,43 @@ async function saveNotices() {
 function renderStrings() {
   const body = $('strings').tBodies[0];
   body.innerHTML = '';
-  const en = state.config.strings.en || {};
-  const fa = state.config.strings.fa || {};
-  const keys = [...new Set([...Object.keys(en), ...Object.keys(fa)])].sort();
-  if (!keys.length) keys.push('');
-  for (const key of keys) addStringRow(key, en[key] || '', fa[key] || '');
+  const overrides = state.config.strings || {};
+  const en = overrides.en || {};
+  const fa = overrides.fa || {};
+  const shippedEn = state.shipped.en || {};
+  const shippedFa = state.shipped.fa || {};
+  const keys = [...new Set([
+    ...Object.keys(shippedEn), ...Object.keys(shippedFa),
+    ...Object.keys(en), ...Object.keys(fa),
+  ])].sort();
+  const needle = $('textsearch').value.trim().toLowerCase();
+  const onlyEdited = $('textedited').checked;
+  let shown = 0;
+  for (const key of keys) {
+    const edited = Boolean(en[key] || fa[key]);
+    if (onlyEdited && !edited) continue;
+    const hay = `${key} ${en[key] || ''} ${fa[key] || ''} ${shippedEn[key] || ''} ${shippedFa[key] || ''}`.toLowerCase();
+    if (needle && !hay.includes(needle)) continue;
+    addStringRow(key, en[key] || '', fa[key] || '', shippedEn[key] || '', shippedFa[key] || '');
+    shown++;
+  }
+  $('textcount').textContent = `${shown} of ${keys.length}`;
 }
 
-function addStringRow(key = '', english = '', persian = '') {
+function addStringRow(key = '', english = '', persian = '', shippedEn = '', shippedFa = '', editable = false) {
   const tr = document.createElement('tr');
   const k = document.createElement('input');
   const e = document.createElement('input');
   const f = document.createElement('input');
-  k.value = key; e.value = english; f.value = persian;
-  k.placeholder = 'notice.continue';
+  k.value = key; k.readOnly = !editable;
+  e.value = english; e.placeholder = shippedEn;
+  f.value = persian; f.placeholder = shippedFa;
+  const mark = () => tr.classList.toggle('edited', Boolean(e.value.trim() || f.value.trim()));
+  mark();
+  e.oninput = f.oninput = mark;
   const del = document.createElement('button');
-  del.className = 'danger'; del.textContent = '×';
-  del.onclick = () => tr.remove();
+  del.className = 'danger'; del.textContent = '×'; del.title = 'Clear the override';
+  del.onclick = () => { e.value = ''; f.value = ''; mark(); };
   tr.append(cell(k), cell(e), cell(f), cell(del));
   $('strings').tBodies[0].appendChild(tr);
 }
@@ -456,18 +486,21 @@ $('addnotice').onclick = () => {
   renderNotices();
 };
 $('savenotices').onclick = saveNotices;
-$('addstring').onclick = () => addStringRow();
+$('addstring').onclick = () => addStringRow('', '', '', '', '', true);
 $('savetext').onclick = saveText;
+$('textsearch').oninput = renderStrings;
+$('textedited').onchange = renderStrings;
 $('f_coverfile').onchange = async event => {
   const file = event.target.files[0];
   if (file) state.cover = await readCover(file);
 };
 for (const button of document.querySelectorAll('#tabs button')) button.onclick = () => switchTab(button.dataset.tab);
 
-api('/api/state').then(data => {
+Promise.all([api('/api/state'), api('/api/keys').catch(() => ({en: {}, fa: {}}))]).then(([data, keys]) => {
   state.games = data.games || [];
   state.config = data.config && data.config.strings ? data.config : {strings: {}};
   state.notices = data.notices || [];
+  state.shipped = keys && keys.en ? keys : {en: {}, fa: {}};
   renderList(); renderNotices(); renderStrings(); showApp();
 }).catch(() => showLogin());
 </script>
