@@ -1,6 +1,6 @@
 // Serves cover/logo/hero images uploaded by the admin panel from the repository, so a new image is
 // visible at once without a deployment. The console only ever talks to this host.
-const ALLOWED = /^(covers|logos|heroes)\/[A-Za-z0-9_.-]+\.(jpg|jpeg|png)$/;
+const ALLOWED = /^(covers|logos|heroes|apps)\/[A-Za-z0-9_.-]+\.(jpg|jpeg|png)$/;
 const TYPES = {jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png'};
 
 module.exports = async (req, res) => {

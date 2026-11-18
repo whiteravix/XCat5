@@ -4,7 +4,7 @@
 //
 // Read through the GitHub contents API, not raw.githubusercontent: raw answers from a cache of up to
 // five minutes, so a fresh edit looked missing.
-const ALLOWED = /^(games|features|config|notices|edits)\.json$|^data\/(pages|releases)\/[A-Za-z0-9_-]+\.json$/;
+const ALLOWED = /^(games|features|config|notices|edits|apps)\.json$|^data\/(pages|releases)\/[A-Za-z0-9_-]+\.json$/;
 
 module.exports = async (req, res) => {
   const path = (req.query && req.query.path) || '';
