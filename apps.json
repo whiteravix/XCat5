@@ -30,7 +30,7 @@
     "cover": "https://xcat5.wikigames.ir/apps/mihawkos.jpg",
     "repo": "mihawk-99/PS5_MihawkOS",
     "page": "https://github.com/mihawk-99/PS5_MihawkOS",
-    "match": ""
+    "match": "PS5_MihawkOS-.*\\.zip$"
   },
   {
     "id": "playden",
