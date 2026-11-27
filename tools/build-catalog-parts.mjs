@@ -21,6 +21,10 @@ for (const game of games) {
 const hash = createHash('sha1').update(readFileSync('games.json'));
 for (const folder of ['data/releases', 'data/pages'])
   for (const file of readdirSync(folder).sort()) hash.update(readFileSync(`${folder}/${file}`));
+// Update catalogue refreshes these beside the games, so a change to any of them must move the version.
+for (const name of ['features.json', 'config.json', 'notices.json', 'edits.json']) {
+  try { hash.update(name).update(readFileSync(name)); } catch { /* the file is optional */ }
+}
 const version = hash.digest('hex');
 
 const text = JSON.stringify(merged);
